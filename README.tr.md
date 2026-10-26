@@ -39,8 +39,12 @@ terminalde çalıştığından emin olun.
 |---|---|
 | `/scorecard` | Karneyi sohbette metin olarak gösterir |
 | `/scorecard dashboard` | Masaüstü panelini açar |
+| `/scorecard shortcut` | Windows masaüstüne **Agent Scorecard** kısayolu koyar (bir kez yeterli; eklenti güncellense de çalışır) |
 | `/scorecard --lang tr` | Karneyi Türkçe gösterir |
 | `/scorecard export --format csv --out gorevler.csv` | Görevleri CSV olarak dışa aktarır (`--format json` görev gruplarını, birikmiş puanları ve tüm olay günlüğünü de içerir) |
+
+Eklentiyi kurmak masaüstüne bir şey koymaz; simge istiyorsanız bir kez `/scorecard shortcut` çalıştırın.
+Panel koyu temalıdır: tüm metinler WCAG AA kontrastını sağlar ve Windows 10/11'de başlık çubuğu da koyudur.
 
 Panelin sağ üst köşesindeki **Dil** seçiminden arayüzü Türkçe ya da İngilizce yapabilirsiniz. Seçim kaydedilir
 ve geçmiş görevlerin puan dökümleri de seçilen dilde gösterilir.

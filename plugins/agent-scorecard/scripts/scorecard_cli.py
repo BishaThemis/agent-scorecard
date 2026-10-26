@@ -1,4 +1,4 @@
-"""Command line: python scorecard_cli.py [report|scan|rescore|dashboard] [--lang en|tr]
+"""Command line: python scorecard_cli.py [report|scan|rescore|dashboard|shortcut] [--lang en|tr]
                python scorecard_cli.py export [--format json|csv] [--out FILE]"""
 import subprocess
 import sys
@@ -7,7 +7,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-from scorecard import config, db, export, i18n, metrics  # noqa: E402
+from scorecard import config, db, export, i18n, metrics, shortcut  # noqa: E402
 from scorecard.i18n import num, pct, t  # noqa: E402
 from scorecard.ingest import scan  # noqa: E402
 from scorecard.scoring import rescore_all  # noqa: E402
@@ -57,6 +57,11 @@ def main(argv: list[str]) -> None:
     elif command == "rescore":
         rescore_all(con, rules)
         print(t("cli.rescored"))
+    elif command == "shortcut":
+        try:
+            print(t("cli.shortcut_done", path=shortcut.create(HERE)))
+        except OSError as e:
+            print(t("cli.shortcut_windows_only") if str(e) == "windows_only" else t("cli.shortcut_failed", e=e))
     elif command == "export":
         fmt = argv[argv.index("--format") + 1] if "--format" in argv else "json"
         out = Path(argv[argv.index("--out") + 1] if "--out" in argv else f"agent-scorecard-export.{fmt}").resolve()

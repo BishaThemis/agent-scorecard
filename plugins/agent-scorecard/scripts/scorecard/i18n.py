@@ -70,7 +70,7 @@ STRINGS = {
         "card.cost": "Cost per task", "card.duration": "Avg. completion time",
         "card.problems": "Errors · repeats · redundant", "card.tasks": "Tasks (last 7 days)",
         "period.week": "last 7 days", "period.all": "all time",
-        "card.vs_prev": "{arrow} {pct} vs previous 7 days",
+        "card.vs_prev_rest": "vs previous 7 days",
         "card.api_equiv": "{period} · API equivalent", "card.unpriced": " · {n} tasks without a price",
         "card.totals": "{total} total · {ok} successful",
         "tab.live": "Live", "tab.tasks": "Tasks", "tab.agents": "Agents & rewards", "tab.routing": "Routing",
@@ -140,7 +140,7 @@ STRINGS = {
         "profile.levels_h": "Level history", "profile.level_up": "{at}: reached {level}",
         "profile.level_down": "{at}: dropped to {level}", "profile.no_levels": "No level changes yet.",
         "profile.categories_h": "Performance by task type",
-        "profile.trend_h": "Weekly trend: average score (number above the bar = finished tasks)",
+        "profile.trend_h": "Weekly trend: average score above each bar, finished tasks inside, success rate below",
         "col.reliable": "Data", "reliable.yes": "enough", "reliable.no": "too few",
 
         # summary
@@ -169,6 +169,10 @@ STRINGS = {
 
         # CLI and hook
         "cli.exported": "Exported {n} tasks to {path}.",
+        "cli.shortcut_done": "Desktop shortcut created: {path}",
+        "cli.shortcut_windows_only": "Desktop shortcuts are only supported on Windows. Run the dashboard with "
+                                     "/scorecard dashboard instead.",
+        "cli.shortcut_failed": "Could not create the desktop shortcut: {e}",
         "cli.title": "# Agent Scorecard",
         "cli.summary": "Tasks: {tasks} · successful: {ok} · first-attempt success: {first}",
         "cli.tokens": "Weighted tokens per successful task: {tok} · cost per task (API equivalent): {cost}",
@@ -240,7 +244,7 @@ STRINGS = {
         "card.cost": "Görev başına maliyet", "card.duration": "Ort. tamamlanma süresi",
         "card.problems": "Hata · tekrar · gereksiz", "card.tasks": "Görev (son 7 gün)",
         "period.week": "son 7 gün", "period.all": "tüm zamanlar",
-        "card.vs_prev": "{arrow} {pct} önceki 7 güne göre",
+        "card.vs_prev_rest": "önceki 7 güne göre",
         "card.api_equiv": "{period} · API eşdeğeri", "card.unpriced": " · {n} görevde fiyat yok",
         "card.totals": "{total} toplam · {ok} başarılı",
         "tab.live": "Canlı", "tab.tasks": "Görevler", "tab.agents": "Ajanlar ve ödüller", "tab.routing": "Yönlendirme",
@@ -307,7 +311,7 @@ STRINGS = {
         "profile.levels_h": "Seviye geçmişi", "profile.level_up": "{at}: {level} seviyesine çıktı",
         "profile.level_down": "{at}: {level} seviyesine düştü", "profile.no_levels": "Henüz seviye değişikliği yok.",
         "profile.categories_h": "Görev türüne göre performans",
-        "profile.trend_h": "Haftalık eğilim: ortalama puan (çubuğun üstündeki sayı = sonuçlanmış görev)",
+        "profile.trend_h": "Haftalık eğilim: çubuğun üstünde ortalama puan, içinde sonuçlanmış görev, altında başarı oranı",
         "col.reliable": "Veri", "reliable.yes": "yeterli", "reliable.no": "yetersiz",
 
         "tab.summary": "Özet", "summary.daily": "Günlük (son 14 gün)", "summary.weekly": "Haftalık (son 8 hafta)",
@@ -332,6 +336,10 @@ STRINGS = {
         "event.vote_change": "{vote} (önceki: {previous})",
 
         "cli.exported": "{n} görev dışa aktarıldı: {path}.",
+        "cli.shortcut_done": "Masaüstü kısayolu oluşturuldu: {path}",
+        "cli.shortcut_windows_only": "Masaüstü kısayolu yalnızca Windows'ta destekleniyor. Paneli /scorecard dashboard "
+                                     "komutuyla açabilirsiniz.",
+        "cli.shortcut_failed": "Masaüstü kısayolu oluşturulamadı: {e}",
         "cli.title": "# Agent Scorecard",
         "cli.summary": "Görev: {tasks} · başarılı: {ok} · ilk denemede başarı: {first}",
         "cli.tokens": "Başarılı görev başına ağırlıklı token: {tok} · görev başına maliyet (API eşdeğeri): {cost}",

@@ -13,7 +13,7 @@ sys.path.insert(0, str(SCRIPTS))
 TMP = tempfile.mkdtemp(prefix="agent-scorecard-test-")
 os.environ["AGENT_SCORECARD_DATA"] = TMP
 
-from scorecard import classify, config, db, export, history, i18n, metrics, transcript  # noqa: E402
+from scorecard import classify, config, db, export, history, i18n, icon, metrics, shortcut, transcript  # noqa: E402
 from scorecard.ingest import ingest, set_vote  # noqa: E402
 from scorecard.scoring import _token_points, rescore_all, score  # noqa: E402
 
@@ -250,7 +250,8 @@ class EndToEnd(unittest.TestCase):
 
     def _hook(self, stdin: str):
         return subprocess.run([sys.executable, str(SCRIPTS / "hook.py")], input=stdin, capture_output=True,
-                              text=True, env={**os.environ, "AGENT_SCORECARD_DATA": TMP})
+                              text=True, env={**os.environ, "AGENT_SCORECARD_DATA": TMP},
+                              creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
 
     def test_hook_subagent_stop(self):
         path = Transcript().tool("Bash", {"command": "pytest"}).handback("ok").write("hook")
@@ -425,6 +426,28 @@ class PhaseOne(unittest.TestCase):
         old.close()
         cols = {r["name"] for r in db.connect(path).execute("PRAGMA table_info(tasks)")}
         self.assertTrue({"rules_hash", "reference_ids"} <= cols)
+
+
+class DesktopShortcut(unittest.TestCase):
+    def test_icon_files_are_valid(self):
+        data = icon.png(32)
+        self.assertTrue(data.startswith(b"\x89PNG\r\n\x1a\n"))
+        path = Path(TMP) / "test.ico"
+        icon.write_ico(path)
+        head = path.read_bytes()[:6]
+        self.assertEqual(head, b"\x00\x00\x01\x00" + bytes([len(icon.SIZES), 0]))
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows only")
+    def test_shortcut_points_to_a_stable_launcher(self):
+        desktop = Path(TMP) / "fake-desktop"
+        desktop.mkdir(exist_ok=True)
+        link = shortcut.create(SCRIPTS, desktop=desktop)
+        self.assertEqual(link, desktop / "Agent Scorecard.lnk")
+        self.assertTrue(link.exists())
+        launcher = config.data_dir() / "Agent Scorecard.pyw"
+        self.assertIn("plugin_root.txt", launcher.read_text(encoding="utf-8"))
+        root = (config.data_dir() / "plugin_root.txt").read_text(encoding="utf-8")
+        self.assertTrue((Path(root) / "dashboard.pyw").exists())
 
 
 if __name__ == "__main__":

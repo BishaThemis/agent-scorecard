@@ -38,10 +38,13 @@ Restart Claude Code afterwards. The hooks call `python`, so make sure `python --
 |---|---|
 | `/scorecard` | Prints the scorecard as text in the conversation |
 | `/scorecard dashboard` | Opens the desktop dashboard |
+| `/scorecard shortcut` | Puts an **Agent Scorecard** shortcut on your Windows desktop (once; it keeps working after plugin updates) |
 | `/scorecard --lang tr` | Prints the scorecard in Turkish |
 | `/scorecard export --format csv --out tasks.csv` | Exports tasks as CSV (`--format json` also includes task groups, career points and the full event log) |
 
-You can also double-click `plugins/agent-scorecard/scripts/dashboard.pyw`. On first start, the dashboard scans
+Installing the plugin does not put anything on your desktop; run `/scorecard shortcut` if you want an icon there.
+The shortcut starts a small launcher in `~/.agent-scorecard`, which always opens the currently installed
+plugin version. You can also double-click `plugins/agent-scorecard/scripts/dashboard.pyw`. On first start, the dashboard scans
 all existing transcripts, so subagents that ran before you installed the plugin show up too.
 
 ## How it works
@@ -139,6 +142,10 @@ Model prices are configurable for the same reason: they change. Models without a
 `~/.agent-scorecard/settings.json`.
 
 ## Dashboard
+
+The dashboard uses a dark theme. All text meets WCAG AA contrast, selected rows keep their outcome color,
+and on Windows 10/11 the title bar is dark too. Meaning never relies on color alone: outcome words and the
+◆ ★ ● ▲ tier marks stay visible.
 
 | Tab | Shows |
 |---|---|
