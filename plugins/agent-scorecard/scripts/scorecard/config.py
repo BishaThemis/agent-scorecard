@@ -1,4 +1,5 @@
 """Paths, rules and user settings."""
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -35,6 +36,23 @@ def rules() -> dict:
         with open(override, encoding="utf-8") as f:
             _merge(result, json.load(f))
     return result
+
+
+def rules_hash(rules: dict) -> str:
+    """Short fingerprint of the effective rules, stored with every score."""
+    return hashlib.sha256(json.dumps(rules, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:12]
+
+
+def remember_plugin_root(scripts_dir: Path) -> None:
+    """Claude Code installs each plugin version in its own folder. The desktop shortcut starts a fixed
+    launcher in the data directory, which reads this file to find the current version's dashboard."""
+    target = data_dir() / "plugin_root.txt"
+    value = str(Path(scripts_dir).resolve())
+    try:
+        if not target.exists() or target.read_text(encoding="utf-8").strip() != value:
+            target.write_text(value, encoding="utf-8")
+    except OSError:
+        pass
 
 
 def settings() -> dict:

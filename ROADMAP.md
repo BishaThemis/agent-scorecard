@@ -29,9 +29,11 @@ either. The experiment in phase 3 exists to measure whether it pays for itself.
 
 ## Planned work
 
-### Phase 1: trustworthy records and profiles
+### Phase 1: trustworthy records and profiles — done in v0.2.0
 
-Everything later depends on this.
+Everything later depends on this. All five items below shipped in v0.2.0. Still open from this area:
+**agent versions**, meaning telling apart versions of the same agent when its definition file changes.
+Today all versions share one history.
 
 1. **Append-only history:** votes and corrections go into an append-only event log where each entry carries a hash of the previous one. Nothing is ever deleted by the app, and a broken chain is flagged in the dashboard. Each score also stores a hash of the rules file and the list of reference tasks it used.
 2. **Agent profiles:** completed and failed tasks, success rate, points gained and lost, tokens and cost, average duration, tools used, error history, strongest categories, and the trend over time.

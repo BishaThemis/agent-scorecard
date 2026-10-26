@@ -1,6 +1,7 @@
 """Run from the plugin folder: python -m unittest discover -s tests"""
 import json
 import os
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -12,7 +13,7 @@ sys.path.insert(0, str(SCRIPTS))
 TMP = tempfile.mkdtemp(prefix="agent-scorecard-test-")
 os.environ["AGENT_SCORECARD_DATA"] = TMP
 
-from scorecard import classify, config, db, i18n, transcript  # noqa: E402
+from scorecard import classify, config, db, export, history, i18n, icon, metrics, shortcut, transcript  # noqa: E402
 from scorecard.ingest import ingest, set_vote  # noqa: E402
 from scorecard.scoring import _token_points, rescore_all, score  # noqa: E402
 
@@ -249,7 +250,8 @@ class EndToEnd(unittest.TestCase):
 
     def _hook(self, stdin: str):
         return subprocess.run([sys.executable, str(SCRIPTS / "hook.py")], input=stdin, capture_output=True,
-                              text=True, env={**os.environ, "AGENT_SCORECARD_DATA": TMP})
+                              text=True, env={**os.environ, "AGENT_SCORECARD_DATA": TMP},
+                              creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
 
     def test_hook_subagent_stop(self):
         path = Transcript().tool("Bash", {"command": "pytest"}).handback("ok").write("hook")
@@ -261,6 +263,191 @@ class EndToEnd(unittest.TestCase):
 
     def test_hook_never_blocks_claude_on_bad_input(self):
         self.assertEqual(self._hook("{broken").returncode, 0)
+
+
+class PhaseOne(unittest.TestCase):
+    """Append-only history, career points and levels, task groups, summaries, export."""
+
+    def setUp(self):
+        self.con = db.connect(Path(TMP) / f"p1-{self._testMethodName}.db")
+
+    def _task(self, name, agent="a", minute=0, ok=True, prompt="Fix the failing test", description="task"):
+        tr = Transcript(prompt, minute=minute).tool("Bash", {"command": "pytest"}, "out", error=not ok).handback("Report")
+        ingest(self.con, tr.write(name, agent=agent, description=description), RULES)
+
+    def _scored(self, *tasks):
+        for i, (name, agent, ok) in enumerate(tasks):
+            self._task(name, agent, minute=i, ok=ok)
+        rescore_all(self.con, RULES)
+
+    def test_scores_are_logged_and_the_chain_verifies(self):
+        self._scored(("t1", "a", True), ("t2", "a", False))
+        kinds = [r["kind"] for r in self.con.execute("SELECT kind FROM events ORDER BY seq")]
+        self.assertEqual(kinds, ["scored", "scored"])
+        self.assertTrue(history.verify(self.con)["ok"])
+        rescore_all(self.con, RULES)   # nothing changed: nothing new is logged
+        self.assertEqual(self.con.execute("SELECT COUNT(*) FROM events").fetchone()[0], 2)
+
+    def test_events_and_tasks_cannot_be_rewritten(self):
+        self._scored(("t1", "a", True))
+        for sql in ("UPDATE events SET data='{}'", "DELETE FROM events", "DELETE FROM tasks"):
+            with self.assertRaises(sqlite3.IntegrityError, msg=sql):
+                self.con.execute(sql)
+        self.con.rollback()
+
+    def test_tampering_is_detected(self):
+        self._scored(("t1", "a", True), ("t2", "a", True))
+        self.con.execute("DROP TRIGGER events_no_update")
+        self.con.execute("UPDATE events SET data=replace(data, '\"delta\": 75', '\"delta\": 99') WHERE seq=1")
+        self.con.commit()
+        self.assertEqual(history.verify(self.con)["problem"], "modified")
+
+    def test_cutting_the_end_of_the_log_is_detected(self):
+        self._scored(("t1", "a", True), ("t2", "a", True))
+        self.con.execute("DROP TRIGGER events_no_delete")
+        self.con.execute("DELETE FROM events WHERE seq=2")
+        self.con.commit()
+        self.assertEqual(history.verify(self.con)["problem"], "truncated")
+
+    def test_removed_tasks_are_detected(self):
+        self._scored(("t1", "a", True))
+        self.con.execute("DROP TRIGGER tasks_no_delete")
+        self.con.execute("DELETE FROM tasks")
+        self.con.commit()
+        self.assertEqual(history.verify(self.con)["missing_tasks"], 1)
+
+    def test_vote_changes_are_logged_as_deltas(self):
+        self._scored(("t1", "a", True))
+        before = history.career_points(self.con)["a"]
+        set_vote(self.con, "t1", "failed", RULES)
+        set_vote(self.con, "t1", "failed", RULES)   # same vote again: no new events
+        set_vote(self.con, "t1", None, RULES)
+        kinds = [r["kind"] for r in self.con.execute("SELECT kind FROM events ORDER BY seq")]
+        self.assertEqual(kinds, ["scored", "vote", "rescored", "vote", "rescored"])
+        self.assertAlmostEqual(history.career_points(self.con)["a"], before)
+        self.assertTrue(history.verify(self.con)["ok"])
+
+    def test_side_effects_of_a_vote_get_their_own_reason(self):
+        self._task("r0", "a", minute=0)
+        self._task("r1", "a", minute=1)
+        unverified = Transcript("Fix the failing test", minute=2).tool("Read", {"file_path": "x"}).handback("Report")
+        ingest(self.con, unverified.write("p", agent="b"), RULES)
+        self._task("later", "c", minute=5)
+        rescore_all(self.con, RULES)
+        set_vote(self.con, "p", "success", RULES)   # p becomes the 3rd reference for "later"
+        reasons = {r["agent_id"]: json.loads(r["data"])["reason"]
+                   for r in self.con.execute("SELECT agent_id, data FROM events WHERE seq > 3 AND kind != 'vote'")}
+        self.assertEqual(reasons, {"p": "vote", "later": "reference_changed"})
+
+    def test_career_points_equal_the_sum_of_final_scores(self):
+        self._scored(("t1", "a", True), ("t2", "a", False), ("t3", "b", True))
+        totals = {r["agent_type"]: r["s"] for r in self.con.execute(
+            "SELECT agent_type, SUM(score) s FROM tasks WHERE outcome IN ('success','partial','failed') GROUP BY 1")}
+        career = history.career_points(self.con)
+        for agent, total in totals.items():
+            self.assertAlmostEqual(career[agent], total)
+
+    def test_levels_never_change_task_scores(self):
+        for i in range(3):
+            self._task(f"history{i}", "veteran", minute=i)
+        self._task("veteran-now", "veteran", minute=10)
+        self._task("newcomer-now", "newcomer", minute=10)
+        rescore_all(self.con, RULES)
+        scores = dict(self.con.execute("SELECT agent_id, score FROM tasks WHERE agent_id LIKE '%-now'").fetchall())
+        self.assertGreater(history.career_points(self.con)["veteran"], history.career_points(self.con)["newcomer"])
+        self.assertEqual(scores["veteran-now"], scores["newcomer-now"])
+
+    def test_level_thresholds(self):
+        self.assertEqual(metrics.level_of(0, RULES)["key"], "novice")
+        self.assertEqual(metrics.level_of(-20, RULES)["key"], "novice")
+        lv = metrics.level_of(650, RULES)
+        self.assertEqual((lv["key"], lv["next_key"], round(lv["progress"], 2)), ("apprentice", "expert", 0.5))
+        self.assertIsNone(metrics.level_of(50000, RULES)["next_key"])
+
+    def test_score_records_rules_and_references(self):
+        for i in range(4):
+            self._task(f"r{i}", minute=i)
+        rescore_all(self.con, RULES)
+        row = self.con.execute("SELECT rules_hash, reference_ids FROM tasks WHERE agent_id='r3'").fetchone()
+        self.assertEqual(row["rules_hash"], config.rules_hash(RULES))
+        self.assertEqual(json.loads(row["reference_ids"]), ["r0", "r1", "r2"])
+
+    def test_task_groups_sum_every_agent(self):
+        self._task("g1", "a", minute=0, ok=False, prompt="Fix it\nTASK-ID: BUG-1")
+        self._task("g2", "b", minute=1, prompt="Fix it\nTASK-ID: BUG-1")
+        self._task("g3", "a", minute=2, description="Write docs")
+        self._task("g4", "c", minute=3, description="Write docs")
+        rescore_all(self.con, RULES)
+        groups = {g["label"]: g for g in metrics.task_groups(self.con)}
+        costs = dict(self.con.execute("SELECT agent_id, cost_usd FROM tasks").fetchall())
+        bug = groups["BUG-1"]
+        self.assertEqual((bug["exact"], bug["attempts"], bug["agents"], bug["first_outcome"], bug["outcome"]),
+                         (True, 2, ["a", "b"], "failed", "success"))
+        self.assertAlmostEqual(bug["cost"], costs["g1"] + costs["g2"])
+        self.assertEqual((groups["Write docs"]["exact"], groups["Write docs"]["attempts"]), (False, 2))
+        s = metrics.success_metrics(self.con)
+        self.assertEqual((s["groups"], s["first_attempt"]), (2, 0.5))
+
+    def test_period_summary(self):
+        self._scored(("t1", "a", True))
+        days = metrics.period_summary(self.con, "day", 14)
+        weeks = metrics.period_summary(self.con, "week", 8)
+        self.assertEqual((len(days), len(weeks)), (14, 8))
+        self.assertTrue(all(w["start"].weekday() == 0 for w in weeks))
+
+    def test_profile(self):
+        self._scored(("t1", "a", True), ("t2", "a", False))
+        p = metrics.agent_profile(self.con, "a", RULES)
+        self.assertEqual((p["final"], p["counts"]["success"], p["counts"]["failed"], len(p["failures"])), (2, 1, 1, 1))
+        self.assertEqual(p["tools"][0][0], "Bash")
+        self.assertGreater(p["gained"], 0)
+        self.assertEqual(len(p["weeks"]), 8)
+
+    def test_export(self):
+        self._scored(("t1", "a", True), ("t2", "b", False))
+        n = export.export_csv(self.con, Path(TMP) / "out.csv")
+        with open(Path(TMP) / "out.csv", encoding="utf-8-sig") as f:
+            header = f.readline()
+        self.assertEqual(n, 2)
+        self.assertIn("agent_type", header)
+        self.assertNotIn("final_report", header)
+        export.export_json(self.con, Path(TMP) / "out.json", RULES)
+        data = json.loads((Path(TMP) / "out.json").read_text(encoding="utf-8"))
+        self.assertEqual((len(data["tasks"]), len(data["events"]), data["chain"]["ok"]), (2, 2, True))
+
+    def test_old_database_is_migrated(self):
+        path = Path(TMP) / "old.db"
+        old = sqlite3.connect(path)
+        v010_tasks = db.SCHEMA.split(");")[0].replace(" rules_hash TEXT, reference_ids TEXT,", "") + ");"
+        self.assertNotIn("rules_hash", v010_tasks)
+        old.execute(v010_tasks)
+        old.execute("INSERT INTO tasks (agent_id, agent_type) VALUES ('x', 'a')")
+        old.commit()
+        old.close()
+        cols = {r["name"] for r in db.connect(path).execute("PRAGMA table_info(tasks)")}
+        self.assertTrue({"rules_hash", "reference_ids"} <= cols)
+
+
+class DesktopShortcut(unittest.TestCase):
+    def test_icon_files_are_valid(self):
+        data = icon.png(32)
+        self.assertTrue(data.startswith(b"\x89PNG\r\n\x1a\n"))
+        path = Path(TMP) / "test.ico"
+        icon.write_ico(path)
+        head = path.read_bytes()[:6]
+        self.assertEqual(head, b"\x00\x00\x01\x00" + bytes([len(icon.SIZES), 0]))
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows only")
+    def test_shortcut_points_to_a_stable_launcher(self):
+        desktop = Path(TMP) / "fake-desktop"
+        desktop.mkdir(exist_ok=True)
+        link = shortcut.create(SCRIPTS, desktop=desktop)
+        self.assertEqual(link, desktop / "Agent Scorecard.lnk")
+        self.assertTrue(link.exists())
+        launcher = config.data_dir() / "Agent Scorecard.pyw"
+        self.assertIn("plugin_root.txt", launcher.read_text(encoding="utf-8"))
+        root = (config.data_dir() / "plugin_root.txt").read_text(encoding="utf-8")
+        self.assertTrue((Path(root) / "dashboard.pyw").exists())
 
 
 if __name__ == "__main__":

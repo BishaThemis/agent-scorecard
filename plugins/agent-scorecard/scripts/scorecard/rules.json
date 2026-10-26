@@ -15,6 +15,8 @@
 
   "tiers": [[95, "diamond"], [85, "gold"], [70, "silver"], [50, "bronze"]],
 
+  "levels": [[0, "novice"], [300, "apprentice"], [1000, "expert"], [2500, "master"], [5000, "elite"], [10000, "legend"]],
+
   "stale_minutes": 20,
 
   "difficulty": {

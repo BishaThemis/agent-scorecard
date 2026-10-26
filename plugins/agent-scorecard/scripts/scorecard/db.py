@@ -1,5 +1,9 @@
 """SQLite store. Raw measurements come from transcripts; scores, tiers and metrics are derived
-data that can be recomputed from those measurements at any time."""
+data that can be recomputed from those measurements at any time.
+
+Tasks are never deleted and events are never changed or deleted; triggers enforce both, so even
+a manual SQL statement fails instead of silently rewriting history.
+"""
 import sqlite3
 from pathlib import Path
 
@@ -22,7 +26,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     claims_done INTEGER DEFAULT 0, claims_tests INTEGER DEFAULT 0,
     discloses_unverified INTEGER DEFAULT 0, admits_partial INTEGER DEFAULT 0,
     state TEXT, outcome TEXT, score REAL, measurable_max REAL, tier TEXT,
-    breakdown TEXT, flagged INTEGER DEFAULT 0,
+    breakdown TEXT, flagged INTEGER DEFAULT 0, rules_hash TEXT, reference_ids TEXT,
     file TEXT, file_size INTEGER, file_mtime REAL, updated_at TEXT
 );
 CREATE INDEX IF NOT EXISTS ix_tasks_agent ON tasks (agent_type, started_at);
@@ -32,7 +36,22 @@ CREATE TABLE IF NOT EXISTS votes (
     vote TEXT NOT NULL CHECK (vote IN ('success', 'partial', 'failed')),
     at TEXT
 );
+CREATE TABLE IF NOT EXISTS events (
+    seq INTEGER PRIMARY KEY AUTOINCREMENT,
+    at TEXT NOT NULL, kind TEXT NOT NULL, agent_id TEXT, data TEXT NOT NULL,
+    prev_hash TEXT NOT NULL, hash TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_events_agent ON events (agent_id);
+CREATE TRIGGER IF NOT EXISTS events_no_update BEFORE UPDATE ON events
+    BEGIN SELECT RAISE(ABORT, 'events are append-only'); END;
+CREATE TRIGGER IF NOT EXISTS events_no_delete BEFORE DELETE ON events
+    BEGIN SELECT RAISE(ABORT, 'events are append-only'); END;
+CREATE TRIGGER IF NOT EXISTS tasks_no_delete BEFORE DELETE ON tasks
+    BEGIN SELECT RAISE(ABORT, 'tasks cannot be deleted'); END;
 """
+
+# Columns added after v0.1.0; older databases get them on first connect
+ADDED_COLUMNS = {"rules_hash": "TEXT", "reference_ids": "TEXT"}
 
 
 def connect(path: Path | None = None) -> sqlite3.Connection:
@@ -40,4 +59,9 @@ def connect(path: Path | None = None) -> sqlite3.Connection:
     con.row_factory = sqlite3.Row
     con.execute("PRAGMA journal_mode=WAL")
     con.executescript(SCHEMA)
+    existing = {r["name"] for r in con.execute("PRAGMA table_info(tasks)")}
+    for name, kind in ADDED_COLUMNS.items():
+        if name not in existing:
+            con.execute(f"ALTER TABLE tasks ADD COLUMN {name} {kind}")
+    con.commit()
     return con

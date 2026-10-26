@@ -37,6 +37,7 @@ def _hint(con, rules) -> str:
 def main() -> None:
     data = json.loads(sys.stdin.read() or "{}")
     event = data.get("hook_event_name")
+    config.remember_plugin_root(Path(__file__).resolve().parent)
     rules = config.rules()
     con = db.connect()
     try:

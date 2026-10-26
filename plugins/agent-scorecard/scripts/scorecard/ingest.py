@@ -7,6 +7,7 @@ from pathlib import Path
 
 from . import classify, transcript
 from .config import claude_dir
+from .history import append
 from .scoring import rescore_all
 
 
@@ -99,9 +100,20 @@ def scan(con: sqlite3.Connection, rules: dict, running_only: bool = False) -> in
 
 
 def set_vote(con: sqlite3.Connection, agent_id: str, vote: str | None, rules: dict) -> None:
+    """Records a user verification. The current vote lives in `votes`; every change, including
+    clearing a vote, is also appended to the event log so it can never be silently undone."""
+    if con.in_transaction:
+        con.commit()
+    con.execute("BEGIN IMMEDIATE")
+    row = con.execute("SELECT t.agent_type, v.vote FROM tasks t LEFT JOIN votes v USING (agent_id) "
+                      "WHERE agent_id=?", (agent_id,)).fetchone()
+    if not row or row["vote"] == vote:
+        con.rollback()
+        return
     if vote:
         con.execute("INSERT INTO votes VALUES (?, ?, ?) ON CONFLICT(agent_id) DO UPDATE "
                     "SET vote=excluded.vote, at=excluded.at", (agent_id, vote, _now()))
     else:
         con.execute("DELETE FROM votes WHERE agent_id=?", (agent_id,))
-    rescore_all(con, rules)
+    append(con, "vote", agent_id, {"agent_type": row["agent_type"], "vote": vote, "previous": row["vote"]})
+    rescore_all(con, rules, voted=agent_id)
