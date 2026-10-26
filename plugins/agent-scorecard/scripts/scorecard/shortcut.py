@@ -1,5 +1,5 @@
 """Opt-in Windows desktop shortcut for the dashboard. Nothing is created on install; the user runs
-`/scorecard shortcut` once."""
+`/agent-scorecard:scorecard shortcut` once."""
 import os
 import subprocess
 import sys

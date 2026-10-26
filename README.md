@@ -40,15 +40,18 @@ Or inside Claude Code:
 
 To update later, run `claude plugin marketplace update agent-scorecard`. Restart Claude Code after installing or updating. The hooks call `python`, so make sure `python --version` works in your terminal.
 
+Claude Code prefixes plugin commands with the plugin name, so the command is `/agent-scorecard:scorecard`.
+Type `/scorecard` in Claude Code and pick it from the suggestions.
+
 | Command | What it does |
 |---|---|
-| `/scorecard` | Prints the scorecard as text in the conversation |
-| `/scorecard dashboard` | Opens the desktop dashboard |
-| `/scorecard shortcut` | Puts an **Agent Scorecard** shortcut on your Windows desktop (once; it keeps working after plugin updates) |
-| `/scorecard --lang tr` | Prints the scorecard in Turkish |
-| `/scorecard export --format csv --out tasks.csv` | Exports tasks as CSV (`--format json` also includes task groups, career points and the full event log) |
+| `/agent-scorecard:scorecard` | Prints the scorecard as text in the conversation |
+| `/agent-scorecard:scorecard dashboard` | Opens the desktop dashboard |
+| `/agent-scorecard:scorecard shortcut` | Puts an **Agent Scorecard** shortcut on your Windows desktop (once; it keeps working after plugin updates) |
+| `/agent-scorecard:scorecard --lang tr` | Prints the scorecard in Turkish |
+| `/agent-scorecard:scorecard export --format csv --out tasks.csv` | Exports tasks as CSV (`--format json` also includes task groups, career points and the full event log) |
 
-Installing the plugin does not put anything on your desktop; run `/scorecard shortcut` if you want an icon there.
+Installing the plugin does not put anything on your desktop; run `/agent-scorecard:scorecard shortcut` if you want an icon there.
 The shortcut starts a small launcher in `~/.agent-scorecard`, which always opens the currently installed
 plugin version. You can also double-click `plugins/agent-scorecard/scripts/dashboard.pyw`. On first start, the dashboard scans
 all existing transcripts, so subagents that ran before you installed the plugin show up too.
@@ -66,7 +69,7 @@ Claude Code ──writes──▶ ~/.claude/projects/*/<session>/subagents/agent
                                scoring.py  →  outcome, score, tier, breakdown
                                           │
                                           ▼
-                          ~/.agent-scorecard/scorecard.db  ◀── dashboard.pyw, /scorecard
+                          ~/.agent-scorecard/scorecard.db  ◀── dashboard.pyw, /agent-scorecard:scorecard
 ```
 
 1. **SubagentStart** adds a placeholder so the agent appears in the *Live* tab right away.

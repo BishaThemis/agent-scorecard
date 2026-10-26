@@ -171,7 +171,7 @@ STRINGS = {
         "cli.exported": "Exported {n} tasks to {path}.",
         "cli.shortcut_done": "Desktop shortcut created: {path}",
         "cli.shortcut_windows_only": "Desktop shortcuts are only supported on Windows. Run the dashboard with "
-                                     "/scorecard dashboard instead.",
+                                     "/agent-scorecard:scorecard dashboard instead.",
         "cli.shortcut_failed": "Could not create the desktop shortcut: {e}",
         "cli.title": "# Agent Scorecard",
         "cli.summary": "Tasks: {tasks} · successful: {ok} · first-attempt success: {first}",
@@ -337,7 +337,7 @@ STRINGS = {
 
         "cli.exported": "{n} görev dışa aktarıldı: {path}.",
         "cli.shortcut_done": "Masaüstü kısayolu oluşturuldu: {path}",
-        "cli.shortcut_windows_only": "Masaüstü kısayolu yalnızca Windows'ta destekleniyor. Paneli /scorecard dashboard "
+        "cli.shortcut_windows_only": "Masaüstü kısayolu yalnızca Windows'ta destekleniyor. Paneli /agent-scorecard:scorecard dashboard "
                                      "komutuyla açabilirsiniz.",
         "cli.shortcut_failed": "Masaüstü kısayolu oluşturulamadı: {e}",
         "cli.title": "# Agent Scorecard",
