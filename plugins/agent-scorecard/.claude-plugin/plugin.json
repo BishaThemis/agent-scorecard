@@ -1,0 +1,10 @@
+{
+  "name": "agent-scorecard",
+  "version": "0.1.0",
+  "description": "Tracks Claude Code subagents (tokens, tool use, verified results) and scores and rewards them with deterministic rules, without any extra LLM calls. Includes a desktop dashboard with an English/Turkish switch.",
+  "author": {"name": "BishaThemis", "url": "https://github.com/BishaThemis"},
+  "homepage": "https://github.com/BishaThemis/agent-scorecard",
+  "repository": "https://github.com/BishaThemis/agent-scorecard",
+  "license": "MIT",
+  "keywords": ["subagents", "metrics", "tokens", "cost", "performance", "dashboard"]
+}

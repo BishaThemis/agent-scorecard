@@ -1,0 +1,14 @@
+{
+  "description": "Agent Scorecard: records subagent start and stop, and scores each subagent deterministically when it stops.",
+  "hooks": {
+    "SubagentStart": [
+      {"hooks": [{"type": "command", "command": "python \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\"", "timeout": 15}]}
+    ],
+    "SubagentStop": [
+      {"hooks": [{"type": "command", "command": "python \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\"", "timeout": 30}]}
+    ],
+    "SessionStart": [
+      {"hooks": [{"type": "command", "command": "python \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\"", "timeout": 15}]}
+    ]
+  }
+}

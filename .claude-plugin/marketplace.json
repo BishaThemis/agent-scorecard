@@ -1,0 +1,12 @@
+{
+  "name": "agent-scorecard",
+  "owner": {"name": "BishaThemis", "url": "https://github.com/BishaThemis"},
+  "description": "Agent Scorecard: rule-based performance tracking and rewards for Claude Code subagents",
+  "plugins": [
+    {
+      "name": "agent-scorecard",
+      "source": "./plugins/agent-scorecard",
+      "description": "Tracks subagent tokens, tool use and verified results; scores them with deterministic rules"
+    }
+  ]
+}

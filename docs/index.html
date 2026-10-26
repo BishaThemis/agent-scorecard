@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent Scorecard</title>
+<meta name="description" content="A Claude Code plugin that scores and rewards subagents with deterministic rules, without any extra LLM calls.">
+<style>
+  :root {
+    --bg: #f6f7f9; --surface: #ffffff; --text: #1d2330; --muted: #5f6673; --line: #e3e5ea;
+    --accent: #3b5bdb; --accent-soft: #e7ecff; --good: #2b8a3e; --bad: #c92a2a; --code: #f0f2f5;
+    --diamond: #1c7ed6; --gold: #b08800; --silver: #868e96; --bronze: #a9652b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151b; --surface: #1a1e26; --text: #e6e8ec; --muted: #9aa1ad; --line: #2b313c;
+      --accent: #7c96ff; --accent-soft: #232b45; --good: #5cc46e; --bad: #ff6b6b; --code: #222733;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+  header { padding: 56px 0 32px; }
+  .eyebrow { color: var(--accent); font-weight: 600; font-size: 14px; letter-spacing: .02em; }
+  h1 { font-size: clamp(34px, 6vw, 52px); line-height: 1.1; margin: 8px 0 16px; }
+  .lead { font-size: 19px; color: var(--muted); max-width: 720px; margin: 0 0 24px; }
+  .buttons { display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn { display: inline-block; padding: 10px 18px; border-radius: 8px; text-decoration: none; font-weight: 600; }
+  .btn.primary { background: var(--accent); color: #fff; }
+  .btn.ghost { border: 1px solid var(--line); color: var(--text); background: var(--surface); }
+  .shot { width: 100%; border-radius: 10px; border: 1px solid var(--line); box-shadow: 0 8px 30px rgba(0,0,0,.08);
+          display: block; height: auto; }
+  section { padding: 40px 0; border-top: 1px solid var(--line); }
+  h2 { font-size: 28px; margin: 0 0 8px; }
+  .sub { color: var(--muted); margin: 0 0 24px; max-width: 760px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; }
+  .card h3 { margin: 0 0 6px; font-size: 17px; }
+  .card p { margin: 0; color: var(--muted); font-size: 15px; }
+  pre { background: var(--code); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px;
+        overflow-x: auto; font: 14px/1.5 ui-monospace, "Cascadia Code", Consolas, monospace; margin: 0 0 16px; }
+  code { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: .92em; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line);
+          border-radius: 10px; overflow: hidden; font-size: 15px; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-size: 13px; font-weight: 600; }
+  td.pts { font-weight: 700; white-space: nowrap; text-align: right; }
+  tr:last-child td { border-bottom: 0; }
+  .steps { counter-reset: s; list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+  .steps li { counter-increment: s; background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+              padding: 14px 18px 14px 56px; position: relative; }
+  .steps li::before { content: counter(s); position: absolute; left: 16px; top: 13px; width: 26px; height: 26px;
+                      border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-weight: 700;
+                      display: grid; place-items: center; font-size: 14px; }
+  .tiers { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+  .tier { padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface);
+          font-weight: 600; font-size: 14px; }
+  .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+  .note { color: var(--muted); font-size: 14px; }
+  footer { padding: 32px 0 48px; color: var(--muted); font-size: 14px; border-top: 1px solid var(--line); }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Claude Code plugin · MIT</div>
+    <h1>Agent Scorecard</h1>
+    <p class="lead">Track what your Claude Code subagents do, score every task out of 100 with fixed and inspectable rules,
+      and reward agents that deliver <strong>verified</strong> results without wasting tokens. Scoring never calls an LLM.</p>
+    <div class="buttons">
+      <a class="btn primary" href="https://github.com/BishaThemis/agent-scorecard">View on GitHub</a>
+      <a class="btn ghost" href="#install">Install</a>
+      <a class="btn ghost" href="https://github.com/BishaThemis/agent-scorecard/blob/main/README.tr.md">Türkçe</a>
+    </div>
+  </header>
+
+  <img class="shot" src="dashboard-en.png" width="1336" height="839"
+       alt="Agent Scorecard dashboard showing a task list and the score breakdown of a selected task">
+
+  <section>
+    <h2>What it does</h2>
+    <p class="sub">Everything is computed from the transcripts Claude Code already writes to disk, using plain Python and a
+      local SQLite file. No API keys, no extra tokens, no extra packages.</p>
+    <div class="grid">
+      <div class="card"><h3>Tracks every subagent</h3><p>Agent, task, input/output/cache tokens, tool calls, errors,
+        duration and API-equivalent cost. Running agents show up live.</p></div>
+      <div class="card"><h3>Checks results against evidence</h3><p>Test runs, build and lint checks, and acceptance criteria.
+        Unverifiable work waits for verification instead of counting as success.</p></div>
+      <div class="card"><h3>Scores and rewards</h3><p>100 points in six sections, with Diamond, Gold, Silver and Bronze
+        tiers. Every point links back to the data it came from.</p></div>
+      <div class="card"><h3>Spots waste</h3><p>Identical calls with identical output and nothing changed in between, and
+        failures retried without any change. Re-running tests is never penalized.</p></div>
+      <div class="card"><h3>Suggests routing</h3><p>The best agent for each task category and difficulty, shown only once
+        there is enough data to say so.</p></div>
+      <div class="card"><h3>English and Turkish</h3><p>Switch the dashboard language at any time. Stored score
+        breakdowns are shown in the language you choose.</p></div>
+    </div>
+  </section>
+
+  <section id="how">
+    <h2>How it works</h2>
+    <p class="sub">Two Claude Code hooks and a transcript parser do all the work. The hook never blocks Claude: it always
+      exits cleanly and logs its own errors.</p>
+    <ol class="steps">
+      <li><strong>SubagentStart</strong> adds the agent to the <em>Live</em> tab the moment it starts.</li>
+      <li>While the agent runs, the dashboard re-reads its transcript every few seconds for live token and tool counts.</li>
+      <li><strong>SubagentStop</strong> parses the finished transcript: real API token usage (deduplicated per message),
+        every tool call and result, test and build outcomes, acceptance criteria, and what the final report claims.</li>
+      <li>The scoring engine decides the outcome from evidence, applies the six scoring sections and assigns a tier.</li>
+      <li>Tasks are scored in time order. A task is only compared with similar tasks that finished <em>before</em> it
+        started, so past scores never drift.</li>
+    </ol>
+  </section>
+
+  <section id="rules">
+    <h2>Scoring rules</h2>
+    <p class="sub">Points that cannot be measured are not awarded, and every score is shown with its measurable maximum.
+      Missing data never looks like failure or success. All thresholds live in a single <code>rules.json</code>.</p>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Section</th><th>Points</th><th>How it is measured</th></tr></thead>
+      <tbody>
+        <tr><td>Task success</td><td class="pts">30</td><td>Last test and build results, acceptance criteria, or your
+          vote. Partial success is capped at 15. Reporting unfinished work as done costs 15 points.</td></tr>
+        <tr><td>Output quality</td><td class="pts">25</td><td>Last test run passed (15), acceptance criteria met (5),
+          no regression (5).</td></tr>
+        <tr><td>Token efficiency</td><td class="pts">20</td><td>Compared with earlier successful tasks of the same
+          category and difficulty: half the reference earns 20, the reference itself earns 5, and 1.5× or more earns 0.
+          Needs verified success and at least 3 reference tasks.</td></tr>
+        <tr><td>Tool efficiency</td><td class="pts">10</td><td>Minus 1 per redundant repeat. Needs verified success.</td></tr>
+        <tr><td>Error handling</td><td class="pts">10</td><td>Minus 2 each time the same failure is retried without
+          changes.</td></tr>
+        <tr><td>Reliability</td><td class="pts">5</td><td>Evidence-backed report (5), clearly saying it was not verified (3),
+          or claiming success with no evidence (minus 15). The same event is never penalized twice.</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="tiers">
+      <span class="tier" style="color:var(--diamond)">◆ Diamond 95+</span>
+      <span class="tier" style="color:var(--gold)">★ Gold 85+</span>
+      <span class="tier" style="color:var(--silver)">● Silver 70+</span>
+      <span class="tier" style="color:var(--bronze)">▲ Bronze 50+</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Make verification exact</h2>
+    <p class="sub">The orchestrating agent can add these lines to a subagent prompt. Turkish aliases work too.</p>
+<pre>ACCEPT-FILE: src/billing/invoice.py   # the file exists and this agent wrote it
+ACCEPT-CMD: npm test                  # the agent ran it and the last run passed
+DIFFICULTY: hard                      # easy | medium | hard
+CATEGORY: debugging
+TASK-ID: BILL-142                     # groups agents and retries on one task</pre>
+  </section>
+
+  <section>
+    <h2>Dashboard</h2>
+    <p class="sub">Live agents, every task with its breakdown, per-agent scorecards and rewards, and routing suggestions,
+      with week-over-week trend cards.</p>
+    <div class="two">
+      <img class="shot" src="agents-en.png" width="1336" height="839" alt="Agents and rewards tab" loading="lazy">
+      <img class="shot" src="routing-en.png" width="1336" height="839" alt="Routing suggestions tab" loading="lazy">
+    </div>
+    <p class="note">Screenshots use fictional demo data generated by <code>tools/make_demo.py</code>.</p>
+  </section>
+
+  <section id="install">
+    <h2>Install</h2>
+    <p class="sub">Requires Python 3.10+ on your PATH as <code>python</code>. In Claude Code, run:</p>
+<pre>/plugin marketplace add BishaThemis/agent-scorecard
+/plugin install agent-scorecard@agent-scorecard</pre>
+    <p class="sub">Restart Claude Code, then run <code>/scorecard</code> for a text report or <code>/scorecard dashboard</code>
+      to open the desktop dashboard. Existing transcripts are scanned on first start, so earlier subagent runs show up too.</p>
+  </section>
+
+  <section>
+    <h2>Known limits</h2>
+    <div class="grid">
+      <div class="card"><h3>API-equivalent cost</h3><p>Based on configurable list prices. On subscription plans it is not your
+        actual bill. Models without a price show no cost instead of a guess.</p></div>
+      <div class="card"><h3>Orchestrator overhead</h3><p>Tokens the main agent spends writing prompts and reading results are
+        not attributed to subagents.</p></div>
+      <div class="card"><h3>Pattern-based claims</h3><p>"Done" and "partial" claims are found with text patterns and can be
+        wrong. Your vote in the dashboard always wins.</p></div>
+      <div class="card"><h3>Transcript format</h3><p>Not a public API, and it may change between Claude Code versions.
+        The parser targets Claude Code 2.1.310.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    Agent Scorecard is released under the MIT license ·
+    <a href="https://github.com/BishaThemis/agent-scorecard">Source</a> ·
+    <a href="https://github.com/BishaThemis/agent-scorecard/blob/main/ROADMAP.md">Roadmap</a>
+  </footer>
+</div>
+</body>
+</html>
