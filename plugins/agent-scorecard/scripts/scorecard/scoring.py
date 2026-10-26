@@ -9,6 +9,8 @@ Notes are stored as translation keys with parameters, so a breakdown can be show
 import json
 import sqlite3
 
+from .config import rules_hash
+from .history import append, write_head
 from .transcript import REPORT_STOP_REASONS
 
 FINAL_OUTCOMES = ("success", "partial", "failed")
@@ -166,22 +168,60 @@ def score(t: dict, vote: str | None, reference: list[int], rules: dict) -> dict:
     }
 
 
-def rescore_all(con: sqlite3.Connection, rules: dict) -> None:
+def _credited(con: sqlite3.Connection) -> dict[str, tuple[float, str]]:
+    """Points already credited per task in the event log, with the last recorded outcome."""
+    credited: dict[str, tuple[float, str]] = {}
+    for e in con.execute("SELECT agent_id, data FROM events WHERE kind IN ('scored', 'rescored') ORDER BY seq"):
+        d = json.loads(e["data"])
+        credited[e["agent_id"]] = (credited.get(e["agent_id"], (0.0, ""))[0] + d["delta"], d["outcome"])
+    return credited
+
+
+def rescore_all(con: sqlite3.Connection, rules: dict, reason: str = "new_data", voted: str | None = None) -> None:
     """Scores every task in time order. The token reference only uses successful tasks of the same
-    category and difficulty that ended BEFORE the task started, so past scores do not drift."""
+    category and difficulty that ended BEFORE the task started, so past scores do not drift.
+
+    Each final score is credited to the event log once; any later change is logged as a separate
+    delta with its reason, so corrections stay visible and accumulated points always add up."""
+    if not con.in_transaction:
+        con.execute("BEGIN IMMEDIATE")   # one writer at a time keeps the hash chain linear
+    rh = rules_hash(rules)
     votes = {r["agent_id"]: r["vote"] for r in con.execute("SELECT agent_id, vote FROM votes")}
     tasks = [dict(r) for r in con.execute("SELECT * FROM tasks ORDER BY started_at")]
-    successes: list[tuple[str, str, str, int]] = []   # (ended_at, category, difficulty, tokens)
+    credited = _credited(con)
+    successes: list[tuple[str, str, str, int, str]] = []   # (ended_at, category, difficulty, tokens, agent_id)
     updates = []
     for t in tasks:
-        reference = [tok for end, cat, diff, tok in successes
-                     if cat == t["category"] and diff == t["difficulty"] and t["started_at"] and end
-                     and end <= t["started_at"]]
-        s = score(t, votes.get(t["agent_id"]), reference, rules)
+        refs = [(tok, aid) for end, cat, diff, tok, aid in successes
+                if cat == t["category"] and diff == t["difficulty"] and t["started_at"] and end
+                and end <= t["started_at"]]
+        s = score(t, votes.get(t["agent_id"]), [tok for tok, _ in refs], rules)
         if s["outcome"] == "success" and t["weighted_tokens"]:
-            successes.append((t["ended_at"], t["category"], t["difficulty"], t["weighted_tokens"]))
+            successes.append((t["ended_at"], t["category"], t["difficulty"], t["weighted_tokens"], t["agent_id"]))
+        used = [aid for _, aid in refs] if s["outcome"] == "success" else []
         updates.append((s["outcome"], s["score"], s["measurable_max"], s["tier"], s["breakdown"], s["flagged"],
-                        t["agent_id"]))
-    con.executemany("UPDATE tasks SET outcome=?, score=?, measurable_max=?, tier=?, breakdown=?, flagged=? "
-                    "WHERE agent_id=?", updates)
+                        rh, json.dumps(used), t["agent_id"]))
+
+        credit = s["score"] if s["outcome"] in FINAL_OUTCOMES else 0.0
+        if t["rules_hash"] and t["rules_hash"] != rh:
+            why = "rules_changed"
+        elif voted and t["agent_id"] == voted:
+            why = "vote"
+        elif t["reference_ids"] is not None and json.loads(t["reference_ids"]) != used:
+            why = "reference_changed"   # e.g. a vote on an earlier task changed the comparison set
+        else:
+            why = "new_data" if voted else reason
+        entry = {"agent_type": t["agent_type"], "outcome": s["outcome"], "score": s["score"], "tier": s["tier"],
+                 "rules_hash": rh, "reason": why}
+        if t["agent_id"] not in credited:
+            if s["outcome"] in FINAL_OUTCOMES:
+                append(con, "scored", t["agent_id"], {**entry, "delta": credit})
+        else:
+            before, last_outcome = credited[t["agent_id"]]
+            if round(credit - before, 1) != 0 or last_outcome != s["outcome"]:
+                append(con, "rescored", t["agent_id"], {**entry, "delta": round(credit - before, 2),
+                                                        "old_outcome": last_outcome, "old_points": round(before, 2)})
+    con.executemany("UPDATE tasks SET outcome=?, score=?, measurable_max=?, tier=?, breakdown=?, flagged=?, "
+                    "rules_hash=?, reference_ids=? WHERE agent_id=?", updates)
     con.commit()
+    write_head(con)

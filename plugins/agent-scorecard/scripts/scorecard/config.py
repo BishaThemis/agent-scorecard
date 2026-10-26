@@ -1,4 +1,5 @@
 """Paths, rules and user settings."""
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -35,6 +36,11 @@ def rules() -> dict:
         with open(override, encoding="utf-8") as f:
             _merge(result, json.load(f))
     return result
+
+
+def rules_hash(rules: dict) -> str:
+    """Short fingerprint of the effective rules, stored with every score."""
+    return hashlib.sha256(json.dumps(rules, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:12]
 
 
 def settings() -> dict:

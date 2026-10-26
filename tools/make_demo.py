@@ -35,7 +35,7 @@ PROFILES = {
 
 
 def write_task(root: Path, n: int, agent: str, description: str, start: datetime, rnd: random.Random,
-               running: bool = False):
+               running: bool = False, task_id: str | None = None):
     session = f"demo-session-{n // 4}"
     folder = root / "projects" / "demo-shop" / session / "subagents"
     folder.mkdir(parents=True, exist_ok=True)
@@ -59,7 +59,8 @@ def write_task(root: Path, n: int, agent: str, description: str, start: datetime
         add("user", {"role": "user", "content": [{"type": "tool_result", "tool_use_id": f"t{call[0]}",
                                                   "content": output, "is_error": error}]})
 
-    add("user", {"role": "user", "content": f"{description}.\nKeep the change focused."})
+    marker = f"\nTASK-ID: {task_id}" if task_id else ""
+    add("user", {"role": "user", "content": f"{description}.\nKeep the change focused.{marker}"})
     p_success, p_partial, p_failed = PROFILES[agent]
     roll = rnd.random()
     outcome = ("success" if roll < p_success else "partial" if roll < p_success + p_partial
@@ -105,7 +106,16 @@ def main(target: str):
         for _ in range(rnd.randint(2, 4)):
             agent = rnd.choice(list(AGENTS))
             description, _ = rnd.choice(AGENTS[agent])
-            write_task(root, n, agent, description, now - timedelta(days=day, hours=rnd.randint(1, 10)), rnd)
+            start = now - timedelta(days=day, hours=rnd.randint(2, 10))
+            if rnd.random() < 0.25:
+                # A task handed to a second agent after the first attempt: both carry the same TASK-ID
+                task_id = f"DEMO-{n}"
+                write_task(root, n, agent, description, start, rnd, task_id=task_id)
+                n += 1
+                helper = rnd.choice([a for a in AGENTS if a != agent])
+                write_task(root, n, helper, description, start + timedelta(hours=1), rnd, task_id=task_id)
+            else:
+                write_task(root, n, agent, description, start, rnd)
             n += 1
     write_task(root, n, "frontend-developer", "Add CSV export to orders page", now - timedelta(minutes=4), rnd,
                running=True)

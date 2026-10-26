@@ -104,12 +104,76 @@ STRINGS = {
         "crit.not_written_by_agent": "exists, but this agent did not create or change it", "crit.not_run": "never run",
         "none": "none", "dur.h": "{h} h {m} min", "dur.m": "{m} min {s} s",
 
+        # levels
+        "level.novice": "Novice", "level.apprentice": "Apprentice", "level.expert": "Expert",
+        "level.master": "Master", "level.elite": "Elite", "level.legend": "Legend",
+        "col.level": "Level", "col.career": "Career points",
+
+        # task groups
+        "tab.groups": "Task groups",
+        "groups.hint": "Every agent and retry that worked on the same task, with combined tokens and cost. Exact groups "
+                       "come from TASK-ID markers; approximate groups combine runs with the same session and description.",
+        "col.match": "Grouping", "match.exact": "exact (TASK-ID)", "match.approx": "approximate",
+        "col.attempts": "Attempts", "col.agents": "Agents", "col.final": "Final outcome", "col.first": "First attempt",
+        "cost.partial": "{cost} + unpriced",
+
+        # profile
+        "tab.profile": "Profile", "profile.agent": "Agent:", "profile.show_tasks": "Show tasks",
+        "profile.empty": "Choose an agent.",
+        "profile.level": "{level} · {points} career points",
+        "profile.next": "{left} points to {next}", "profile.max": "Highest level reached",
+        "profile.levels_note": "Levels summarize history only; they never change how tasks are scored.",
+        "profile.tasks_h": "Tasks",
+        "profile.outcome_line": "{success} successful · {partial} partial · {failed} failed · {pending} awaiting "
+                                "verification · {running} running",
+        "profile.rate": "Success rate: {rate} ({n} finished tasks)",
+        "profile.thin": " · too few tasks for a firm conclusion",
+        "profile.points": "Points gained {gained} · points lost {lost}",
+        "profile.tokens_h": "Tokens and cost",
+        "profile.tokens_line": "input {i} · output {o} · cache write {w} · cache read {r}",
+        "profile.tokens_line2": "weighted total {t} · per successful task {s} · cost {c}{unpriced} · avg. time {d}",
+        "profile.unpriced": " ({n} tasks without a price)",
+        "profile.tools_h": "Tools used (calls / errors)",
+        "profile.errors_h": "Errors",
+        "profile.errors_line": "{e} tool errors · {r} repeated without changes · {w} redundant calls",
+        "profile.failures_h": "Failed and partial tasks", "profile.no_failures": "None.",
+        "profile.levels_h": "Level history", "profile.level_up": "{at}: reached {level}",
+        "profile.level_down": "{at}: dropped to {level}", "profile.no_levels": "No level changes yet.",
+        "profile.categories_h": "Performance by task type",
+        "profile.trend_h": "Weekly trend: average score (number above the bar = finished tasks)",
+        "col.reliable": "Data", "reliable.yes": "enough", "reliable.no": "too few",
+
+        # summary
+        "tab.summary": "Summary", "summary.daily": "Daily (last 14 days)", "summary.weekly": "Weekly (last 8 weeks)",
+        "summary.week_of": "week of {d}", "col.period": "Period", "col.test_pass": "Test pass rate",
+        "col.first_attempt": "First attempt", "col.tok_per_success": "Tokens / success", "col.cost_per_task": "Cost / task",
+        "col.avg_time": "Avg. time", "col.problems": "Errors · repeats · redundant",
+
+        # export
+        "export.csv": "Export CSV…", "export.json": "Export JSON…", "export.done": "Exported {n} tasks to {path}",
+
+        # history
+        "tab.history": "History",
+        "history.hint": "Every score, correction and vote is appended here and can never be edited. Each entry is "
+                        "chained to the previous one by a hash, so changes and deletions become visible.",
+        "history.ok": "History chain intact: {n} events verified.",
+        "history.gap": "History chain broken: event {seq} is missing.",
+        "history.modified": "History chain broken: event {seq} was changed.",
+        "history.truncated": "History was cut short or replaced: event {seq} no longer matches the saved chain head.",
+        "history.missing_tasks": "{n} scored tasks were removed from the database.",
+        "col.time": "Time", "col.event": "Event", "col.change": "Change", "col.reason": "Reason",
+        "event.scored": "Scored", "event.rescored": "Rescored", "event.vote": "Vote",
+        "reason.new_data": "new data", "reason.vote": "user vote", "reason.rules_changed": "rules changed",
+        "reason.reference_changed": "comparison data changed",
+        "event.vote_change": "{vote} (was {previous})",
+
         # CLI and hook
+        "cli.exported": "Exported {n} tasks to {path}.",
         "cli.title": "# Agent Scorecard",
         "cli.summary": "Tasks: {tasks} · successful: {ok} · first-attempt success: {first}",
         "cli.tokens": "Weighted tokens per successful task: {tok} · cost per task (API equivalent): {cost}",
         "cli.problems": "Tool errors: {e} · repeated errors: {r} · redundant calls: {w}",
-        "cli.header": "| Agent | Tasks | Success | Avg. score | Total score | Diamond/Gold/Silver/Bronze | Pending |",
+        "cli.header": "| Agent | Level | Career points | Tasks | Success | Avg. score | Diamond/Gold/Silver/Bronze | Pending |",
         "cli.routing": "Routing suggestions:",
         "cli.routing_line": "- {cat} / {diff}: {agent} (avg. {score}, {n} tasks)",
         "cli.scanned": "{n} transcripts updated.", "cli.rescored": "All tasks rescored.",
@@ -210,11 +274,69 @@ STRINGS = {
         "crit.not_written_by_agent": "dosya var ama bu ajan oluşturmadı/değiştirmedi", "crit.not_run": "çalıştırılmadı",
         "none": "yok", "dur.h": "{h} sa {m} dk", "dur.m": "{m} dk {s} sn",
 
+        "level.novice": "Başlangıç", "level.apprentice": "Çırak", "level.expert": "Uzman",
+        "level.master": "Usta", "level.elite": "Elit", "level.legend": "Efsane",
+        "col.level": "Seviye", "col.career": "Birikmiş puan",
+
+        "tab.groups": "Görev grupları",
+        "groups.hint": "Aynı görev üzerinde çalışan tüm ajanlar ve denemeler, toplam token ve maliyetleriyle. Kesin gruplar "
+                       "GOREV-ID işaretinden gelir; yaklaşık gruplar aynı oturum ve açıklamadaki çalışmaları birleştirir.",
+        "col.match": "Gruplama", "match.exact": "kesin (GOREV-ID)", "match.approx": "yaklaşık",
+        "col.attempts": "Deneme", "col.agents": "Ajanlar", "col.final": "Son sonuç", "col.first": "İlk deneme",
+        "cost.partial": "{cost} + fiyatsız",
+
+        "tab.profile": "Profil", "profile.agent": "Ajan:", "profile.show_tasks": "Görevleri göster",
+        "profile.empty": "Bir ajan seçin.",
+        "profile.level": "{level} · {points} birikmiş puan",
+        "profile.next": "{next} seviyesine {left} puan", "profile.max": "En yüksek seviyeye ulaştı",
+        "profile.levels_note": "Seviyeler yalnızca geçmişi özetler; görevlerin nasıl puanlandığını hiçbir zaman değiştirmez.",
+        "profile.tasks_h": "Görevler",
+        "profile.outcome_line": "{success} başarılı · {partial} kısmen · {failed} başarısız · {pending} doğrulama "
+                                "bekliyor · {running} çalışıyor",
+        "profile.rate": "Başarı oranı: {rate} ({n} sonuçlanmış görev)",
+        "profile.thin": " · kesin sonuç için görev sayısı az",
+        "profile.points": "Kazanılan puan {gained} · kaybedilen puan {lost}",
+        "profile.tokens_h": "Token ve maliyet",
+        "profile.tokens_line": "girdi {i} · çıktı {o} · önbelleğe yazma {w} · önbellekten okuma {r}",
+        "profile.tokens_line2": "ağırlıklı toplam {t} · başarılı görev başına {s} · maliyet {c}{unpriced} · ort. süre {d}",
+        "profile.unpriced": " ({n} görevde fiyat yok)",
+        "profile.tools_h": "Kullanılan araçlar (çağrı / hata)",
+        "profile.errors_h": "Hatalar",
+        "profile.errors_line": "{e} araç hatası · {r} değişiklik yapmadan tekrar · {w} gereksiz çağrı",
+        "profile.failures_h": "Başarısız ve kısmen kalan görevler", "profile.no_failures": "Yok.",
+        "profile.levels_h": "Seviye geçmişi", "profile.level_up": "{at}: {level} seviyesine çıktı",
+        "profile.level_down": "{at}: {level} seviyesine düştü", "profile.no_levels": "Henüz seviye değişikliği yok.",
+        "profile.categories_h": "Görev türüne göre performans",
+        "profile.trend_h": "Haftalık eğilim: ortalama puan (çubuğun üstündeki sayı = sonuçlanmış görev)",
+        "col.reliable": "Veri", "reliable.yes": "yeterli", "reliable.no": "yetersiz",
+
+        "tab.summary": "Özet", "summary.daily": "Günlük (son 14 gün)", "summary.weekly": "Haftalık (son 8 hafta)",
+        "summary.week_of": "{d} haftası", "col.period": "Dönem", "col.test_pass": "Test geçme",
+        "col.first_attempt": "İlk deneme", "col.tok_per_success": "Token / başarı", "col.cost_per_task": "Maliyet / görev",
+        "col.avg_time": "Ort. süre", "col.problems": "Hata · tekrar · gereksiz",
+
+        "export.csv": "CSV dışa aktar…", "export.json": "JSON dışa aktar…", "export.done": "{n} görev dışa aktarıldı: {path}",
+
+        "tab.history": "Geçmiş",
+        "history.hint": "Her puan, düzeltme ve oy buraya eklenir ve hiçbir zaman değiştirilemez. Her kayıt bir öncekine "
+                        "hash ile bağlıdır; değişiklik ve silmeler görünür hâle gelir.",
+        "history.ok": "Geçmiş zinciri sağlam: {n} olay doğrulandı.",
+        "history.gap": "Geçmiş zinciri kırık: {seq} numaralı olay eksik.",
+        "history.modified": "Geçmiş zinciri kırık: {seq} numaralı olay değiştirilmiş.",
+        "history.truncated": "Geçmiş kısaltılmış veya değiştirilmiş: {seq} numaralı olay kayıtlı zincir başıyla uyuşmuyor.",
+        "history.missing_tasks": "Puanlanmış {n} görev veritabanından silinmiş.",
+        "col.time": "Zaman", "col.event": "Olay", "col.change": "Değişiklik", "col.reason": "Neden",
+        "event.scored": "Puanlandı", "event.rescored": "Yeniden puanlandı", "event.vote": "Oy",
+        "reason.new_data": "yeni veri", "reason.vote": "kullanıcı oyu", "reason.rules_changed": "kurallar değişti",
+        "reason.reference_changed": "karşılaştırma verisi değişti",
+        "event.vote_change": "{vote} (önceki: {previous})",
+
+        "cli.exported": "{n} görev dışa aktarıldı: {path}.",
         "cli.title": "# Agent Scorecard",
         "cli.summary": "Görev: {tasks} · başarılı: {ok} · ilk denemede başarı: {first}",
         "cli.tokens": "Başarılı görev başına ağırlıklı token: {tok} · görev başına maliyet (API eşdeğeri): {cost}",
         "cli.problems": "Araç hatası: {e} · tekrarlanan hata: {r} · gereksiz çağrı: {w}",
-        "cli.header": "| Ajan | Görev | Başarı | Ort. puan | Toplam puan | Elmas/Altın/Gümüş/Bronz | Bekleyen |",
+        "cli.header": "| Ajan | Seviye | Birikmiş puan | Görev | Başarı | Ort. puan | Elmas/Altın/Gümüş/Bronz | Bekleyen |",
         "cli.routing": "Yönlendirme önerileri:",
         "cli.routing_line": "- {cat} / {diff}: {agent} (ort. {score}, {n} görev)",
         "cli.scanned": "{n} transkript güncellendi.", "cli.rescored": "Tüm görevler yeniden puanlandı.",
