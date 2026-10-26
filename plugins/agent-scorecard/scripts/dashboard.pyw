@@ -356,7 +356,7 @@ class Dashboard(tk.Tk):
         self._hint(f, t("history.hint"))
         frame, self.events = self._table(f, [
             ("time", "col.time", 110, "w"), ("event", "col.event", 130, "w"), ("agent", "col.agent", 170, "w"),
-            ("task", "col.task", 300, "w"), ("change", "col.change", 280, "w"), ("reason", "col.reason", 130, "w")])
+            ("task", "col.task", 280, "w"), ("change", "col.change", 250, "w"), ("reason", "col.reason", 200, "w")])
         frame.pack(fill="both", expand=True)
 
     # ---------- data ----------

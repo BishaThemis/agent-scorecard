@@ -158,6 +158,8 @@ errors / repeats / redundant calls.
 ![Agent profile](docs/profile-en.png)
 ![Task groups](docs/groups-en.png)
 ![Agents and rewards tab](docs/agents-en.png)
+![Daily and weekly summary](docs/summary-en.png)
+![History tab with the hash chain status](docs/history-en.png)
 ![Routing tab](docs/routing-en.png)
 
 To try the dashboard with fictional data:
