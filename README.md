@@ -25,14 +25,20 @@ writes to disk, using plain Python and a local SQLite file. Python 3.10+ is the 
 
 ## Install
 
-In Claude Code:
+From any terminal (cmd, PowerShell, bash) with Claude Code installed, one command:
+
+```
+claude plugin install agent-scorecard --marketplace BishaThemis/agent-scorecard
+```
+
+Or inside Claude Code:
 
 ```
 /plugin marketplace add BishaThemis/agent-scorecard
 /plugin install agent-scorecard@agent-scorecard
 ```
 
-Restart Claude Code afterwards. The hooks call `python`, so make sure `python --version` works in your terminal.
+To update later, run `claude plugin marketplace update agent-scorecard`. Restart Claude Code after installing or updating. The hooks call `python`, so make sure `python --version` works in your terminal.
 
 | Command | What it does |
 |---|---|

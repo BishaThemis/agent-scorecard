@@ -179,7 +179,9 @@ TASK-ID: BILL-142                     # groups agents and retries on one task</p
 
   <section id="install">
     <h2>Install</h2>
-    <p class="sub">Requires Python 3.10+ on your PATH as <code>python</code>. In Claude Code, run:</p>
+    <p class="sub">Requires Python 3.10+ on your PATH as <code>python</code>. From any terminal with Claude Code installed:</p>
+<pre>claude plugin install agent-scorecard --marketplace BishaThemis/agent-scorecard</pre>
+    <p class="sub">Or inside Claude Code:</p>
 <pre>/plugin marketplace add BishaThemis/agent-scorecard
 /plugin install agent-scorecard@agent-scorecard</pre>
     <p class="sub">Restart Claude Code, then run <code>/scorecard</code> for a text report or <code>/scorecard dashboard</code>

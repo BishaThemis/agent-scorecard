@@ -25,14 +25,20 @@ sıradan Python kodu ve yerel bir SQLite dosyasıyla hesaplanır. Tek gereksinim
 
 ## Kurulum
 
-Claude Code'da:
+Claude Code kurulu herhangi bir terminalden (cmd, PowerShell, bash) tek komutla:
+
+```
+claude plugin install agent-scorecard --marketplace BishaThemis/agent-scorecard
+```
+
+Ya da Claude Code içinden:
 
 ```
 /plugin marketplace add BishaThemis/agent-scorecard
 /plugin install agent-scorecard@agent-scorecard
 ```
 
-Ardından Claude Code'u yeniden başlatın. Hook'lar `python` komutunu çağırır; `python --version` komutunun
+Güncellemek için: `claude plugin marketplace update agent-scorecard`. Kurduktan veya güncelledikten sonra Claude Code'u yeniden başlatın. Hook'lar `python` komutunu çağırır; `python --version` komutunun
 terminalde çalıştığından emin olun.
 
 | Komut | Ne yapar |
